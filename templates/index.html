@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8">
+    <title>Файлы на Яндекс.Диске</title>
+    <script>
+      function filterFiles(type) {
+        const items = document.querySelectorAll('.file-item');
+        items.forEach(item => {
+          const mimeType = item.getAttribute('data-mime-type');
+          if (type === 'all' || mimeType.startsWith(type)) {
+            item.style.display = '';
+          } else {
+            item.style.display = 'none';
+          }
+        });
+      }
+
+      function toggleSelection(checkbox, item) {
+        if (checkbox.checked) {
+          item.classList.add('selected');
+        } else {
+          item.classList.remove('selected');
+        }
+      }
+
+      function prepareDownloadForm() {
+        const selectedItems = document.querySelectorAll('.file-item.selected');
+        const form = document.getElementById('download-form');
+        form.innerHTML = ''; // очищаем форму
+
+        selectedItems.forEach(item => {
+          const fileUrl = item.getAttribute('data-file-url');
+          const fileName = item.getAttribute('data-file-name');
+
+          const urlInput = document.createElement('input');
+          urlInput.type = 'hidden';
+          urlInput.name = 'file_urls';
+          urlInput.value = fileUrl;
+
+          const nameInput = document.createElement('input');
+          nameInput.type = 'hidden';
+          nameInput.name = 'file_names';
+          nameInput.value = fileName;
+
+          form.appendChild(urlInput);
+          form.appendChild(nameInput);
+        });
+
+        form.submit();
+      }
+    </script>
+    <link rel="stylesheet" href="static/style.css">
+  </head>
+  <body>
+    <div class="container">
+      <h2>Введите публичную ссылку:</h2>
+      <form method="POST">
+        <input type="text" name="public_key" value="{{ public_key }}" required>
+        <button type="submit">Получить файлы</button>
+      </form>
+
+      {% if files %}
+        <h3>Список файлов:</h3>
+
+        <!-- Фильтры для отображения типов файлов -->
+        <div class="filters">
+          <button onclick="filterFiles('all')">Все</button>
+          <button onclick="filterFiles('image/')">Изображения</button>
+          <button onclick="filterFiles('video/')">Видео</button>
+
+          <button onclick="filterFiles('application/')">Документы</button>
+        </div>
+
+        <ul>
+          {% for file in files %}
+            <li class="file-item" data-mime-type="{{ file.get('mime_type') }}" data-file-url="{{ file.get('file') }}" data-file-name="{{ file.get('name') }}">
+              <div class="checkbox-container">
+                <input type="checkbox" id="file-{{ loop.index }}" onclick="toggleSelection(this, this.parentElement.parentElement)">
+                <label for="file-{{ loop.index }}">{{ file.get('name') }}</label>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+
+        <button onclick="prepareDownloadForm()">Скачать выбранные файлы</button>
+        <form id="download-form" method="POST" action="{{ url_for('download_multiple') }}">
+        </form>
+      {% endif %}
+    </div>
+  </body>
+</html>
